@@ -332,6 +332,65 @@ body { background: #0a0e17; color: #e4e4e4; font-family: -apple-system, BlinkMac
   text-transform: uppercase;
   letter-spacing: 1px;
 }
+
+/* Slots game */
+.slots-machine {
+  background: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 16px;
+}
+.slots-reels {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.slot-reel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.slot-cell {
+  background: #1f2937;
+  border: 2px solid #374151;
+  border-radius: 8px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  transition: all 0.3s;
+}
+.slot-cell.payline { border-color: #f59e0b; background: rgba(245,158,11,0.1); }
+.slot-cell.win { border-color: #10b981; background: rgba(16,185,129,0.15); animation: slotWin 0.5s ease infinite alternate; }
+@keyframes slotWin { from { transform: scale(1); } to { transform: scale(1.05); } }
+.slots-paytable {
+  background: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.paytable-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.paytable-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #1f2937;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.paytable-item .sym { font-size: 20px; }
+.paytable-item .mult { color: #10b981; font-weight: 700; margin-left: auto; }
+.spinning .slot-cell { animation: spinBlur 0.1s linear infinite; }
+@keyframes spinBlur { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 </style>
 </head>
 <body>
@@ -354,6 +413,7 @@ body { background: #0a0e17; color: #e4e4e4; font-family: -apple-system, BlinkMac
   <button class="nav-btn active" onclick="switchGame('crash')">Crash</button>
   <button class="nav-btn" onclick="switchGame('dice')">Dice</button>
   <button class="nav-btn" onclick="switchGame('mines')">Mines</button>
+  <button class="nav-btn" onclick="switchGame('slots')">Slots</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -442,6 +502,42 @@ body { background: #0a0e17; color: #e4e4e4; font-family: -apple-system, BlinkMac
       <button class="btn-warning" id="mines-cashout-btn" onclick="cashoutMines()" disabled>Cashout</button>
     </div>
     <div id="mines-status" class="status-text" style="margin-top:12px;"></div>
+  </div>
+</div>
+
+<!-- SLOTS GAME -->
+<div class="game-panel" id="panel-slots">
+  <div class="slots-machine" id="slots-machine">
+    <div class="slots-reels" id="slots-reels">
+      <div class="slot-reel"><div class="slot-cell">-</div><div class="slot-cell payline">-</div><div class="slot-cell">-</div></div>
+      <div class="slot-reel"><div class="slot-cell">-</div><div class="slot-cell payline">-</div><div class="slot-cell">-</div></div>
+      <div class="slot-reel"><div class="slot-cell">-</div><div class="slot-cell payline">-</div><div class="slot-cell">-</div></div>
+      <div class="slot-reel"><div class="slot-cell">-</div><div class="slot-cell payline">-</div><div class="slot-cell">-</div></div>
+      <div class="slot-reel"><div class="slot-cell">-</div><div class="slot-cell payline">-</div><div class="slot-cell">-</div></div>
+    </div>
+    <div id="slots-status" class="status-text">Spin the reels!</div>
+  </div>
+  <div class="controls-row">
+    <div class="control-group">
+      <label>Bet Amount</label>
+      <input type="number" id="slots-bet" value="100" min="1" step="10">
+    </div>
+    <div class="control-group" style="flex:0 0 auto; display:flex; align-items:flex-end;">
+      <button class="btn-primary" id="slots-btn" onclick="spinSlots()">Spin</button>
+    </div>
+  </div>
+  <div class="slots-paytable">
+    <div style="color:#9ca3af;font-size:12px;font-weight:600;text-transform:uppercase;margin-bottom:8px;">Paytable (middle row)</div>
+    <div class="paytable-grid">
+      <div class="paytable-item"><span class="sym">7&#xFE0F;&#x20E3;</span> 5x of 7 <span class="mult">100x</span></div>
+      <div class="paytable-item"><span class="sym">&#x1F48E;</span> 5x Diamond <span class="mult">50x</span></div>
+      <div class="paytable-item"><span class="sym">&#x1F4CA;</span> 5x BAR <span class="mult">25x</span></div>
+      <div class="paytable-item"><span class="sym">&#x1F514;</span> 5x Bell <span class="mult">15x</span></div>
+      <div class="paytable-item"><span class="sym">&#x1F352;</span> 5x Fruit <span class="mult">10x</span></div>
+      <div class="paytable-item"><span class="sym">&#x2B50;</span> 4 of a kind <span class="mult">5-20x</span></div>
+      <div class="paytable-item"><span class="sym">&#x2728;</span> 3 of a kind <span class="mult">2-5x</span></div>
+      <div class="paytable-item"><span class="sym">&#x1F3B0;</span> Two pair <span class="mult">1.5x</span></div>
+    </div>
   </div>
 </div>
 
@@ -810,6 +906,82 @@ socket.on('mines:cashout', function(data) {
 function cashoutMines() {
   socket.emit('mines:cashout');
 }
+
+// ==================== SLOTS ====================
+var SLOT_EMOJIS = {
+  '7': '7️⃣',
+  'BAR': '📊',
+  'cherry': '🍒',
+  'lemon': '🍋',
+  'orange': '🍊',
+  'plum': '🫐',
+  'bell': '🔔',
+  'diamond': '💎'
+};
+
+var slotsSpinning = false;
+
+function spinSlots() {
+  if (slotsSpinning) return;
+  var amount = parseFloat(document.getElementById('slots-bet').value);
+  if (!amount || amount <= 0) return showToast('Enter a valid bet', false);
+  if (amount > balance) return showToast('Insufficient balance', false);
+
+  slotsSpinning = true;
+  document.getElementById('slots-btn').disabled = true;
+  document.getElementById('slots-status').textContent = 'Spinning...';
+  document.getElementById('slots-status').className = 'status-text';
+
+  // Animate reels
+  var reelsEl = document.getElementById('slots-reels');
+  reelsEl.classList.add('spinning');
+  var allCells = reelsEl.querySelectorAll('.slot-cell');
+  var symbols = Object.values(SLOT_EMOJIS);
+  var spinInterval = setInterval(function() {
+    allCells.forEach(function(cell) {
+      cell.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+      cell.classList.remove('win');
+    });
+  }, 80);
+
+  setTimeout(function() {
+    clearInterval(spinInterval);
+    reelsEl.classList.remove('spinning');
+    socket.emit('slots:spin', { amount: amount });
+  }, 1500);
+}
+
+socket.on('slots:result', function(data) {
+  slotsSpinning = false;
+  document.getElementById('slots-btn').disabled = false;
+
+  var reelsEl = document.getElementById('slots-reels');
+  reelsEl.innerHTML = '';
+
+  for (var col = 0; col < 5; col++) {
+    var reelDiv = document.createElement('div');
+    reelDiv.className = 'slot-reel';
+    for (var row = 0; row < 3; row++) {
+      var cell = document.createElement('div');
+      cell.className = 'slot-cell';
+      if (row === 1) cell.classList.add('payline');
+      cell.textContent = SLOT_EMOJIS[data.grid[col][row]] || data.grid[col][row];
+      if (row === 1 && data.won) cell.classList.add('win');
+      reelDiv.appendChild(cell);
+    }
+    reelsEl.appendChild(reelDiv);
+  }
+
+  var statusEl = document.getElementById('slots-status');
+  if (data.won) {
+    statusEl.textContent = 'WIN! ' + data.winMultiplier + 'x - $' + data.winnings.toFixed(2);
+    statusEl.className = 'status-text won';
+    showToast('Won $' + data.winnings.toFixed(2) + '!', true);
+  } else {
+    statusEl.textContent = 'No win - try again!';
+    statusEl.className = 'status-text lost';
+  }
+});
 </script>
 </body>
 </html>

@@ -336,6 +336,99 @@ io.on('connection', (socket) => {
     delete mineGames[userId];
   });
 
+  // --- SLOTS ---
+  socket.on('slots:spin', (data) => {
+    const amount = parseFloat(data.amount);
+    if (!amount || amount <= 0 || amount > user.balance) {
+      socket.emit('error', { message: 'Invalid bet amount' });
+      return;
+    }
+
+    const seed = generateServerSeed();
+    const SYMBOLS = ['7', 'BAR', 'cherry', 'lemon', 'orange', 'plum', 'bell', 'diamond'];
+    const WEIGHTS = [1, 2, 4, 5, 5, 4, 3, 2]; // rarer symbols have lower weight
+    const totalWeight = WEIGHTS.reduce((a, b) => a + b, 0);
+
+    function pickSymbol(seedStr, col) {
+      const hash = crypto.createHmac('sha256', seedStr).update(`slot-${col}`).digest('hex');
+      let val = parseInt(hash.slice(0, 8), 16) % totalWeight;
+      for (let i = 0; i < SYMBOLS.length; i++) {
+        val -= WEIGHTS[i];
+        if (val < 0) return { symbol: SYMBOLS[i], index: i };
+      }
+      return { symbol: SYMBOLS[0], index: 0 };
+    }
+
+    const reels = [];
+    for (let col = 0; col < 5; col++) {
+      const row = [];
+      for (let r = 0; r < 3; r++) {
+        row.push(pickSymbol(seed, col * 3 + r));
+      }
+      reels.push(row);
+    }
+
+    // Middle row is the payline
+    const payline = reels.map(col => col[1]);
+    const paylineSymbols = payline.map(s => s.symbol);
+
+    // Calculate win
+    let winMultiplier = 0;
+    const counts = {};
+    paylineSymbols.forEach(s => { counts[s] = (counts[s] || 0) + 1; });
+
+    // 5 of a kind
+    if (Object.values(counts).includes(5)) {
+      const sym = Object.keys(counts).find(k => counts[k] === 5);
+      if (sym === '7') winMultiplier = 100;
+      else if (sym === 'diamond') winMultiplier = 50;
+      else if (sym === 'BAR') winMultiplier = 25;
+      else if (sym === 'bell') winMultiplier = 15;
+      else winMultiplier = 10;
+    }
+    // 4 of a kind
+    else if (Object.values(counts).includes(4)) {
+      const sym = Object.keys(counts).find(k => counts[k] === 4);
+      if (sym === '7') winMultiplier = 20;
+      else if (sym === 'diamond') winMultiplier = 12;
+      else if (sym === 'BAR') winMultiplier = 8;
+      else winMultiplier = 5;
+    }
+    // 3 of a kind
+    else if (Object.values(counts).includes(3)) {
+      const sym = Object.keys(counts).find(k => counts[k] === 3);
+      if (sym === '7') winMultiplier = 5;
+      else if (sym === 'diamond') winMultiplier = 3;
+      else winMultiplier = 2;
+    }
+    // Two pair
+    else if (Object.values(counts).filter(c => c === 2).length === 2) {
+      winMultiplier = 1.5;
+    }
+
+    user.balance -= amount;
+    const won = winMultiplier > 0;
+    let winnings = 0;
+    if (won) {
+      winnings = Math.floor(amount * winMultiplier * 100) / 100;
+      user.balance += winnings;
+    }
+
+    const grid = reels.map(col => col.map(s => s.symbol));
+
+    socket.emit('balance', { balance: user.balance });
+    socket.emit('slots:result', {
+      grid,
+      payline: paylineSymbols,
+      won,
+      winMultiplier,
+      winnings,
+      amount,
+      hash: hashSeed(seed),
+      seed
+    });
+  });
+
   // --- RESET ---
   socket.on('reset-balance', () => {
     user.balance = STARTING_BALANCE;
